@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TableLink — Mesa Virtual de RPG</title>
+  <link rel="icon" type="image/png" href="assets/brand/icon-coin.png" />
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- A sala Mestre/Jogadores agora é hospedada pelo servidor via WebSocket
+       (ver js/network.js e server/src/rooms.js) — não usa mais PeerJS/WebRTC. -->
+</head>
+<body>
+
+  <!-- ═══ TELA DE LOGIN ═══ -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img class="logo-wordmark" src="assets/brand/logo-wordmark.png" alt="TableLink"/>
+        <p>Mesa Virtual de RPG</p>
+      </div>
+
+      <div class="login-tabs">
+        <button type="button" class="login-tab active" data-auth-tab="login">Entrar</button>
+        <button type="button" class="login-tab" data-auth-tab="register">Criar Conta</button>
+      </div>
+
+      <form id="login-form-login" class="login-form" novalidate>
+        <label>Usuário ou e-mail</label>
+        <input type="text" id="login-identifier-input" placeholder="Ex: caique ou caique@email.com" autocomplete="username" />
+        <label>Senha</label>
+        <input type="password" id="login-password-input" placeholder="Sua senha" autocomplete="current-password" />
+        <p class="login-error hidden" id="login-error"></p>
+        <button type="submit" id="login-btn" class="btn-primary">Entrar</button>
+      </form>
+
+      <form id="login-form-register" class="login-form hidden" novalidate>
+        <label>Nome de exibição</label>
+        <input type="text" id="register-displayname-input" placeholder="Ex: Caique" maxlength="40" autocomplete="name" />
+        <label>Usuário</label>
+        <input type="text" id="register-username-input" placeholder="3-20 letras/números, sem espaço" maxlength="20" autocomplete="username" />
+        <label>E-mail</label>
+        <input type="email" id="register-email-input" placeholder="voce@email.com" autocomplete="email" />
+        <label>Senha</label>
+        <input type="password" id="register-password-input" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+        <p class="login-error hidden" id="register-error"></p>
+        <button type="submit" id="register-btn" class="btn-primary">Criar Conta</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div id="dashboard-screen" class="dashboard-screen hidden">
+    <div class="dashboard-topbar">
+      <img class="dashboard-logo" src="assets/brand/logo-wordmark.png" alt="TableLink"/>
+      <div class="dashboard-topbar-actions">
+        <button id="btn-darkmode-dashboard" class="tool-btn" title="Modo Escuro">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14a8 8 0 1 1-9-9 6.5 6.5 0 0 0 9 9Z"/></svg>
+        </button>
+        <button id="dashboard-profile-btn" class="dashboard-profile-btn">
+        <span id="dashboard-profile-avatar" class="dashboard-profile-avatar"><svg class="icon icon-dim" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+        <span id="dashboard-profile-name">Jogador</span>
+        <span class="dashboard-profile-edit"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M13 7l4 4"/></svg></span>
+      </button>
+      </div>
+    </div>
+
+    <div class="dashboard-tabs">
+      <button type="button" class="dashboard-tab active" data-dtab="tables"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z"/><path d="M10 4v14"/><path d="M16 6v14"/></svg> Mesas</button>
+      <button type="button" class="dashboard-tab" data-dtab="threats"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7c0 3 2 4 2 6h10c0-2 2-3 2-6a7 7 0 0 0-7-7Z"/><path d="M9 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/><path d="M15 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/><path d="M10 16v2M14 16v2"/></svg> Ameaças</button>
+      <button type="button" class="dashboard-tab" data-dtab="sheets"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z"/><path d="M6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg> Fichas</button>
+    </div>
+
+    <div class="dashboard-body">
+
+      <!-- ABA: MESAS -->
+      <section class="dashboard-section dashboard-dtab active" id="dtab-tables">
+        <div class="dashboard-play-actions">
+          <button id="dashboard-solo-btn" class="dashboard-play-action">
+            <span class="dashboard-play-action-icon"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M9 15h.01"/><path d="M15 15h.01"/><path d="M12 12h.01"/></svg></span>
+            <span>Jogar Sozinho</span>
+          </button>
+          <button id="dashboard-create-table-btn" class="dashboard-play-action">
+            <span class="dashboard-play-action-icon"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3Z"/></svg></span>
+            <span>Criar Mesa</span>
+          </button>
+          <button id="dashboard-join-table-btn" class="dashboard-play-action">
+            <span class="dashboard-play-action-icon"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M12.5 12.5 20 20"/><path d="M16 16l2-2"/><path d="M18.5 18.5 21 16"/></svg></span>
+            <span>Entrar com Código</span>
+          </button>
+        </div>
+        <div id="tables-status" class="login-status hidden"></div>
+        <div class="dashboard-section-head">
+          <h2><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z"/><path d="M10 4v14"/><path d="M16 6v14"/></svg> Suas Mesas</h2>
+        </div>
+        <div id="dashboard-tables-list" class="dashboard-sheets-list">
+          <!-- preenchido via JS -->
+        </div>
+      </section>
+
+      <!-- ABA: AMEAÇAS -->
+      <section class="dashboard-section dashboard-dtab" id="dtab-threats">
+        <div class="dashboard-section-head">
+          <h2><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7c0 3 2 4 2 6h10c0-2 2-3 2-6a7 7 0 0 0-7-7Z"/><path d="M9 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/><path d="M15 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/><path d="M10 16v2M14 16v2"/></svg> Bestiário</h2>
+          <button id="dashboard-new-threat-btn" class="btn-secondary">+ Nova Ameaça</button>
+        </div>
+        <p class="initiative-hint">Monstros e chefes que você pode consultar ou trazer pra qualquer mesa que mestrar.</p>
+        <div id="dashboard-threats-list" class="dashboard-sheets-list">
+          <!-- preenchido via JS -->
+        </div>
+      </section>
+
+      <!-- ABA: FICHAS -->
+      <section class="dashboard-section dashboard-dtab" id="dtab-sheets">
+        <div class="dashboard-section-head">
+          <h2><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z"/><path d="M6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg> Minhas Fichas</h2>
+          <button id="dashboard-new-sheet-btn" class="btn-secondary">+ Nova Ficha</button>
+        </div>
+        <div id="dashboard-sheets-list" class="dashboard-sheets-list">
+          <!-- preenchido via JS -->
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ═══ SALA DE ESPERA (Lobby) — mostrado ao criar/entrar/reabrir uma mesa, antes de ir pro tabuleiro ═══ -->
+  <div id="lobby-screen" class="dashboard-screen lobby-screen hidden">
+    <div class="dashboard-topbar">
+      <button id="lobby-back-btn" class="dashboard-profile-btn lobby-back-btn">
+        <span><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span>
+        <span>Dashboard</span>
+      </button>
+      <div class="lobby-heading">
+        <h2 id="lobby-title">Mesa</h2>
+        <span id="lobby-role-badge" class="lobby-role-badge">Mestre</span>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+      <section class="dashboard-section" id="lobby-invite-row">
+        <div class="dashboard-section-head">
+          <h2><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 15l6-6"/><path d="M8 12l-2 2a3 3 0 0 0 4 4l2-2"/><path d="M16 12l2-2a3 3 0 0 0-4-4l-2 2"/></svg> Convidar Jogadores</h2>
+        </div>
+        <div class="lobby-invite-box">
+          <span class="lobby-invite-label">Código da mesa</span>
+          <span id="lobby-invite-code">——</span>
+          <button id="lobby-invite-copy-btn" class="btn-secondary"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z"/><path d="M6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg> Copiar Convite</button>
+        </div>
+      </section>
+
+      <section class="dashboard-section">
+        <div class="dashboard-section-head">
+          <h2><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z"/><path d="M6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg> Fichas na Mesa</h2>
+          <button id="lobby-add-sheet-btn" class="btn-secondary">+ Adicionar Ficha</button>
+        </div>
+        <div id="lobby-roster-list" class="dashboard-sheets-list">
+          <!-- preenchido via JS -->
+        </div>
+      </section>
+
+      <section class="dashboard-section hidden" id="lobby-players-section">
+        <h2><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg> Jogadores da Mesa</h2>
+        <div id="lobby-players-list" class="lobby-players-list">
+          <p class="dashboard-empty-hint">Ninguém entrou nesta mesa ainda — compartilhe o código acima.</p>
+        </div>
+      </section>
+
+      <button id="lobby-enter-btn" class="btn-primary lobby-enter-btn"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg> Entrar na Mesa</button>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ESCOLHER/CRIAR FICHA PRA ADICIONAR À MESA ═══ -->
+  <div id="modal-add-sheet" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Adicionar Ficha à Mesa</h3>
+        <button class="modal-close" data-modal="modal-add-sheet"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <button id="add-sheet-create-new" class="btn-secondary add-sheet-create-btn">+ Criar Nova Ficha</button>
+        <div id="add-sheet-picker-list" class="add-sheet-picker-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-add-sheet">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: PERFIL ═══ -->
+  <div id="modal-profile" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Seu Perfil</h3>
+        <button class="modal-close" data-modal="modal-profile"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="profile-avatar-pick">
+          <div class="profile-avatar-thumb" id="profile-avatar-thumb"><svg class="icon icon-dim" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+          <button class="btn-secondary" id="profile-avatar-upload-btn">Escolher Foto</button>
+          <button class="btn-secondary" id="profile-avatar-clear-btn">Remover</button>
+          <input type="file" id="profile-avatar-input" accept="image/*" class="hidden"/>
+        </div>
+        <div class="form-row">
+          <label>Nome</label>
+          <input type="text" id="profile-name-input" maxlength="24"/>
+        </div>
+        <div class="form-row">
+          <label>Cor do perfil</label>
+          <div id="profile-color-swatches" class="profile-color-swatches"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary danger-text" id="profile-logout-btn">Sair da Conta</button>
+        <button class="btn-secondary" data-modal="modal-profile">Cancelar</button>
+        <button class="btn-primary" id="profile-save-btn">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BADGE DE SALA (mostrado no topo quando em sala Mestre/Jogador) ═══ -->
+  <div id="room-badge" class="room-badge hidden">
+    <span id="room-badge-icon"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3Z"/></svg></span>
+    <span id="room-badge-text">Sala —</span>
+    <button id="room-badge-copy" class="room-badge-copy hidden" title="Copiar código"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z"/><path d="M6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg></button>
+  </div>
+
+  <!-- ═══ APP PRINCIPAL ═══ -->
+  <div id="app" class="app hidden">
+
+    <!-- TOOLBAR ESQUERDA -->
+    <aside class="toolbar" id="toolbar">
+      <button class="toolbar-logo" id="toolbar-logo-btn" title="Voltar ao Dashboard">
+        <img src="assets/brand/icon-coin.png" alt="TableLink"/>
+      </button>
+
+      <div class="tool-group">
+        <button class="tool-btn" id="toolbar-profile-btn" title="Seu Perfil">
+          <span id="toolbar-profile-avatar" class="toolbar-profile-avatar"><svg class="icon icon-dim" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn active" data-tool="select" title="Selecionar [S]">
+          <svg viewBox="0 0 24 24"><path d="M4 2l16 10-7 1-4 7z" fill="currentColor"/></svg>
+        </button>
+        <button class="tool-btn" data-tool="pan" title="Mover Mapa [V]">
+          <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <button class="tool-btn" data-tool="ruler" title="Régua [R] (gira token selecionado se houver um selecionado)">
+          <svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="8" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 8v3M10 8v2M14 8v3M18 8v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="fog-paint" title="Névoa [Q]">
+          <svg viewBox="0 0 24 24"><path d="M3 12h18M3 8h14M3 16h10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+        <button class="tool-btn" data-tool="fog-reveal" title="Revelar Névoa [E]">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 5C7 5 3 12 3 12s4 7 9 7 9-7 9-7-4-7-9-7z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </button>
+        <button class="tool-btn" data-tool="fog-erase" title="Apagar Névoa [W]">
+          <svg viewBox="0 0 24 24"><path d="M20 5L5 20M5 5l15 15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn" id="btn-add-token" title="Adicionar Token [T]">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M19 3v6M16 6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="tool-btn" id="btn-upload-map" title="Adicionar Mapa [M]">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M3 15l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn" id="btn-combat" title="Iniciar Combate [C]">
+          <svg viewBox="0 0 24 24"><path d="M14.5 2.5l7 7-3 3-7-7zM9.5 7.5l-7 7 3 3 7-7M2 22l4-1-3-3zM12 12l-1 5 4-2z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="tool-btn" id="btn-settings" title="Configurações [,]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 13a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 17.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 13 1.65 1.65 0 0 0 3.17 12H3.09a2 2 0 0 1 0-4H3.17A1.65 1.65 0 0 0 4.68 7a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 10 3.17V3.09a2 2 0 0 1 4 0V3.17A1.65 1.65 0 0 0 15 4.68a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.09.32.25.62.47.87.21.24.48.42.79.53H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-help" title="Atalhos [?]">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 9a3 3 0 015.12 2.1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-group toolbar-bottom">
+        <button class="tool-btn" id="btn-darkmode" title="Modo Escuro">
+          <svg viewBox="0 0 24 24"><path d="M20 14a8 8 0 1 1-9-9 6.5 6.5 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="tool-btn" id="btn-center" title="Centralizar Mapa [F]">
+          <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M8 8l4-4 4 4M8 16l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="tool-btn" id="btn-grid-toggle" title="Grade [G]">
+          <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </button>
+        <button class="tool-btn danger" id="btn-clear" title="Limpar Mesa">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CANVAS AREA -->
+    <main class="canvas-area" id="canvas-area">
+      <canvas id="main-canvas"></canvas>
+      <!-- Overlay para Fog of War -->
+      <canvas id="fog-canvas"></canvas>
+      <!-- Ruler overlay -->
+      <svg id="ruler-svg" class="ruler-svg"></svg>
+    </main>
+
+    <!-- PAINEL DIREITO -->
+    <aside class="side-panel" id="side-panel">
+      <!-- TABS -->
+      <div class="panel-tabs">
+        <button class="panel-tab active" data-tab="chat"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/></svg> Chat</button>
+        <button class="panel-tab" data-tab="dice"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M9 15h.01"/><path d="M15 15h.01"/><path d="M12 12h.01"/></svg> Dados</button>
+        <button class="panel-tab" data-tab="initiative"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 14 10"/><path d="M14 10l3-3 3 1-1 3-3 3"/><path d="M20 20 10 10"/><path d="M10 10 7 7l-3 1 1 3 3 3"/></svg> Turno</button>
+        <button class="panel-tab" data-tab="sheets"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h9a3 3 0 0 1 3 3v13H9a3 3 0 0 1-3-3V4Z"/><path d="M18 20a3 3 0 0 0 0-6h-3"/></svg> Ficha</button>
+        <button class="panel-tab" data-tab="maps" id="tab-btn-maps"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z"/><path d="M10 4v14"/><path d="M16 6v14"/></svg> Mapas</button>
+        <button class="panel-tab" data-tab="threats" id="tab-btn-threats"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7c0 3 2 4 2 6h10c0-2 2-3 2-6a7 7 0 0 0-7-7Z"/><path d="M9 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/><path d="M15 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/><path d="M10 16v2M14 16v2"/></svg> Ameaças</button>
+      </div>
+
+      <!-- TAB: CHAT -->
+      <div class="tab-content active" id="tab-chat">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" placeholder="Mensagem ou /r 1d20..." maxlength="300" />
+          <button id="chat-send"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- TAB: DADOS -->
+      <div class="tab-content" id="tab-dice">
+        <div class="dice-grid">
+          <button class="dice-btn" data-dice="d4"><img src="assets/dice/d4.png" alt="d4"/><span>d4</span></button>
+          <button class="dice-btn" data-dice="d6"><img src="assets/dice/d6.png" alt="d6"/><span>d6</span></button>
+          <button class="dice-btn" data-dice="d8"><img src="assets/dice/d8.png" alt="d8"/><span>d8</span></button>
+          <button class="dice-btn" data-dice="d10"><img src="assets/dice/d10.png" alt="d10"/><span>d10</span></button>
+          <button class="dice-btn" data-dice="d12"><img src="assets/dice/d12.png" alt="d12"/><span>d12</span></button>
+          <button class="dice-btn" data-dice="d20"><img src="assets/dice/d20.png" alt="d20"/><span>d20</span></button>
+          <button class="dice-btn" data-dice="d100"><img src="assets/dice/d100.png" alt="d100"/><span>d100</span></button>
+          <button class="dice-btn" data-dice="d2"><img src="assets/dice/d2.png" alt="d2"/><span>d2</span></button>
+        </div>
+        <div class="dice-formula">
+          <input type="text" id="dice-formula-input" placeholder="2d6+3, 1d20-1..." />
+          <button id="dice-roll-formula">Rolar</button>
+        </div>
+        <div class="dice-history" id="dice-history"></div>
+      </div>
+
+      <!-- TAB: INICIATIVA -->
+      <div class="tab-content" id="tab-initiative">
+        <div class="initiative-controls">
+          <button id="btn-start-combat" class="btn-combat-start"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 14 10"/><path d="M14 10l3-3 3 1-1 3-3 3"/><path d="M20 20 10 10"/><path d="M10 10 7 7l-3 1 1 3 3 3"/></svg> Iniciar Combate</button>
+          <div id="combat-controls" class="hidden">
+            <div class="round-counter">Rodada <span id="round-num">1</span></div>
+            <button id="btn-next-turn" class="btn-next">Próximo Turno <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></button>
+            <button id="btn-end-combat" class="btn-danger-sm">Encerrar</button>
+          </div>
+        </div>
+        <p class="initiative-hint" id="initiative-hint">
+          Cada jogador clica em <strong>Iniciativa</strong> na própria ficha (aba Perícias) e entra automaticamente na lista abaixo.
+        </p>
+        <div class="add-combatant hidden" id="add-combatant-form">
+          <input type="text" id="combatant-name" placeholder="Nome do combatente" />
+          <input type="number" id="combatant-init" placeholder="Iniciativa" min="0" max="99" />
+          <button id="btn-add-combatant">+ Adicionar</button>
+          <button id="btn-roll-all"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M9 15h.01"/><path d="M15 15h.01"/><path d="M12 12h.01"/></svg> Rolar Todos</button>
+        </div>
+        <div class="initiative-list" id="initiative-list"></div>
+      </div>
+
+      <!-- TAB: FICHAS -->
+      <div class="tab-content" id="tab-sheets">
+        <div class="sheet-toolbar">
+          <button id="btn-new-sheet" class="btn-combat-start"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h9a3 3 0 0 1 3 3v13H9a3 3 0 0 1-3-3V4Z"/><path d="M18 20a3 3 0 0 0 0-6h-3"/></svg> Nova Ficha</button>
+        </div>
+        <div class="sheet-list" id="sheet-list"></div>
+      </div>
+
+      <!-- TAB: MAPAS (só o Mestre vê/mexe) -->
+      <div class="tab-content" id="tab-maps">
+        <div class="sheet-toolbar">
+          <button id="btn-add-map" class="btn-combat-start"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z"/><path d="M10 4v14"/><path d="M16 6v14"/></svg> Adicionar Mapa</button>
+        </div>
+        <p class="initiative-hint">
+          Clique num mapa na lista pra selecioná-lo na mesa. Com um mapa
+          selecionado: <strong>arraste</strong> nele no mapa pra mover, ou
+          <strong>Shift+Scroll</strong> pra redimensionar.
+        </p>
+        <div class="maps-list" id="maps-list"></div>
+      </div>
+
+      <!-- TAB: AMEAÇAS (só o Mestre vê — bestiário, pra consultar durante o jogo) -->
+      <div class="tab-content" id="tab-threats">
+        <div class="sheet-toolbar">
+          <button id="btn-new-threat-ingame" class="btn-combat-start"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nova Ameaça</button>
+        </div>
+        <div class="dashboard-sheets-list" id="in-game-threats-list"></div>
+      </div>
+    </aside>
+
+    <!-- PAINEL DE INFO DO TOKEN SELECIONADO -->
+    <div class="token-info-bar" id="token-info-bar">
+      <span id="token-info-name">—</span>
+      <span id="token-info-hp"></span>
+      <button id="token-info-close"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+    </div>
+
+  </div>
+
+  <!-- ═══ MODAIS ═══ -->
+
+  <!-- Dado animado overlay -->
+  <div id="dice-overlay" class="dice-overlay hidden">
+    <div class="dice-result-anim">
+      <div class="dice-postit" aria-hidden="true"></div>
+      <div class="dice-face" id="dice-face-display"></div>
+      <div class="dice-result-value" id="dice-result-value"></div>
+      <div class="dice-result-label" id="dice-result-label"></div>
+    </div>
+  </div>
+
+  <!-- Context menu -->
+  <div id="context-menu" class="context-menu hidden">
+    <div class="ctx-title" id="ctx-token-name">Token</div>
+    <button class="ctx-item" data-action="rename"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h8l8 8-8 8-8-8V4Z"/><path d="M8 8h.01"/></svg> Renomear</button>
+    <button class="ctx-item" data-action="alter-hp"><svg class="icon icon-danger" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9.5-9C.7 7.5 3 4 6.2 4 8.4 4 10 5.4 12 7.7 14 5.4 15.6 4 17.8 4 21 4 23.3 7.5 21.5 11 19 15.6 12 20 12 20Z"/></svg> Alterar Vida</button>
+    <button class="ctx-item" data-action="rotate"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.5 5.8"/><path d="M4 18v-5h5"/></svg> Girar</button>
+    <button class="ctx-item" data-action="flip-h"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16"/><path d="M6 8l-3 4 3 4"/><path d="M18 8l3 4-3 4"/></svg> Inverter H</button>
+    <button class="ctx-item" data-action="flip-v"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16"/><path d="M8 6l4-3 4 3"/><path d="M8 18l4 3 4-3"/></svg> Inverter V</button>
+    <button class="ctx-item" data-action="resize"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4Z"/><path d="M20 20h-6v-2h4v-4h2v6Z"/><path d="M4 20 20 4"/></svg> Redimensionar</button>
+    <div class="ctx-separator"></div>
+    <button class="ctx-item ctx-submenu-trigger" data-action="condition"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12 12 5a5 5 0 0 1 7 7l-7 7a5 5 0 0 1-7-7Z"/><path d="M9 9l6 6"/></svg> Condições <svg class="icon icon-dim" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="ctx-item" data-action="open-sheet"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h9a3 3 0 0 1 3 3v13H9a3 3 0 0 1-3-3V4Z"/><path d="M18 20a3 3 0 0 0 0-6h-3"/></svg> Ficha de Personagem</button>
+    <button class="ctx-item ctx-submenu-trigger" data-action="variant"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M4 16l5-5 4 4 3-3 4 4"/><path d="M9 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/></svg> Versão do Token <svg class="icon icon-dim" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div class="ctx-separator"></div>
+    <button class="ctx-item" data-action="toggle-lock"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v9H6z"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Travar</button>
+    <button class="ctx-item hidden" id="ctx-toggle-visibility" data-action="toggle-visibility"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg> Ocultar da Mesa</button>
+    <button class="ctx-item danger" data-action="delete"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14"/><path d="M9 7V5h6v2"/><path d="M7 7l1 13h8l1-13"/></svg> Deletar</button>
+  </div>
+
+  <!-- Submenu de Condições (preenchido dinamicamente por tokens.js) -->
+  <div id="condition-submenu" class="context-menu condition-submenu hidden"></div>
+
+  <!-- Submenu versões de token (preenchido dinamicamente por tokens.js) -->
+  <div id="variant-submenu" class="context-menu hidden"></div>
+
+  <!-- Modal: Editar Token -->
+  <div id="modal-token" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-token-title">Editar Token</h3>
+        <button class="modal-close" data-modal="modal-token"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Nome</label>
+          <input type="text" id="edit-token-name" maxlength="32" />
+        </div>
+        <div class="form-row">
+          <label>HP Atual</label>
+          <input type="number" id="edit-token-hp" min="0" max="9999" />
+        </div>
+        <div class="form-row">
+          <label>HP Máximo</label>
+          <input type="number" id="edit-token-hpmax" min="0" max="9999" />
+        </div>
+        <div class="form-row">
+          <label>PD (Det.)</label>
+          <input type="number" id="edit-token-mana" min="0" max="9999" />
+        </div>
+        <div class="form-row">
+          <label>Armadura</label>
+          <input type="number" id="edit-token-armor" min="0" max="999" />
+        </div>
+        <div class="form-row">
+          <label>Girar (°)</label>
+          <input type="range" id="edit-token-rotate" min="0" max="360" step="1" />
+          <span id="edit-token-rotate-val">0°</span>
+        </div>
+        <div class="form-row">
+          <label>Tamanho (%)</label>
+          <input type="range" id="edit-token-scale" min="25" max="400" step="5" />
+          <span id="edit-token-scale-val">100%</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-token">Cancelar</button>
+        <button class="btn-primary" id="save-token-btn">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ficha de Personagem -->
+  <div id="modal-sheet" class="modal-backdrop hidden">
+    <div class="modal modal-sheet">
+      <div class="modal-header">
+        <h3 id="sheet-modal-title">Ficha de Personagem</h3>
+        <button class="modal-close" data-modal="modal-sheet"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body sheet-body" id="sheet-body">
+        <!-- Preenchido dinamicamente por sheet.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary danger-text" id="sheet-delete-btn"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14"/><path d="M9 7V5h6v2"/><path d="M7 7l1 13h8l1-13"/></svg> Excluir Ficha</button>
+        <button class="btn-secondary" data-modal="modal-sheet">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configurações -->
+  <div id="modal-settings" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Configurações da Mesa</h3>
+        <button class="modal-close" data-modal="modal-settings"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Tamanho da Grade (px)</label>
+          <input type="number" id="settings-grid-size" min="20" max="200" step="10" value="60" />
+        </div>
+        <div class="form-row">
+          <label>Escala (1 quadrado = __ metros)</label>
+          <input type="number" id="settings-grid-scale" min="0.5" max="50" step="0.5" value="1.5" />
+        </div>
+        <div class="form-row">
+          <label>Seu nome na mesa</label>
+          <input type="text" id="settings-player-name" maxlength="24" />
+        </div>
+        <div class="settings-divider"></div>
+        <div class="form-row">
+          <label>Backup dos dados desta mesa</label>
+          <p class="settings-hint">
+            Tudo (mapa, tokens, névoa, fichas, iniciativa) fica salvo só neste
+            navegador. Exporte de vez em quando pra não perder nada se limpar
+            os dados do navegador ou trocar de computador.
+          </p>
+          <div class="settings-backup-actions">
+            <button class="btn-secondary" id="export-backup-btn"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg> Exportar Backup</button>
+            <button class="btn-secondary" id="import-backup-btn"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V7"/><path d="M7 12l5-5 5 5"/><path d="M5 19h14"/></svg> Importar Backup</button>
+            <input type="file" id="import-backup-input" accept=".json,application/json" class="hidden" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-settings">Cancelar</button>
+        <button class="btn-primary" id="save-settings-btn">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Atalhos -->
+  <div id="modal-help" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3z"/><path d="M6.5 10h.01M9.5 10h.01M12.5 10h.01M15.5 10h.01M17.5 10h.01"/><path d="M7 14h10"/></svg> Atalhos de Teclado</h3>
+        <button class="modal-close" data-modal="modal-help"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body shortcuts-grid">
+        <div class="shortcut-item"><kbd>S</kbd><span>Ferramenta Selecionar</span></div>
+        <div class="shortcut-item"><kbd>V</kbd><span>Mover Mapa (pan)</span></div>
+        <div class="shortcut-item"><kbd>R</kbd><span>Régua — ou <em>Modo Girar</em> se houver um token selecionado</span></div>
+        <div class="shortcut-item"><kbd>Q</kbd><span>Névoa (pintar)</span></div>
+        <div class="shortcut-item"><kbd>E</kbd><span>Revelar Névoa</span></div>
+        <div class="shortcut-item"><kbd>W</kbd><span>Apagar Névoa</span></div>
+        <div class="shortcut-item"><kbd>T</kbd><span>Adicionar Token</span></div>
+        <div class="shortcut-item"><kbd>M</kbd><span>Adicionar Mapa</span></div>
+        <div class="shortcut-item"><kbd>C</kbd><span>Combate / Iniciativa</span></div>
+        <div class="shortcut-item"><kbd>G</kbd><span>Grade on/off</span></div>
+        <div class="shortcut-item"><kbd>F</kbd><span>Centralizar Câmera no Mapa</span></div>
+        <div class="shortcut-item"><kbd>F11</kbd><span>Modo Apresentação (tela cheia, some a interface)</span></div>
+        <div class="shortcut-item"><kbd>ESC</kbd><span>Cancelar ação / Deselecionar</span></div>
+        <div class="shortcut-item"><kbd>DEL</kbd><span>Deletar Token selecionado (com confirmação)</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+Z</kbd><span>Desfazer</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+Y</kbd><span>Refazer</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+C</kbd><span>Copiar token selecionado</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+V</kbd><span>Colar token copiado (na posição do cursor)</span></div>
+        <div class="shortcut-item"><kbd>Scroll</kbd><span>Zoom centralizado no cursor</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+Scroll</kbd><span>Zoom centralizado no cursor</span></div>
+        <div class="shortcut-item"><kbd>Shift+Scroll</kbd><span>Redimensionar token selecionado</span></div>
+        <div class="shortcut-item"><kbd>Alt+Clique</kbd><span>Criar um ping no mapa (visível pra todos)</span></div>
+        <div class="shortcut-item"><kbd>Alt+Arrastar</kbd><span>Girar/Redimensionar token selecionado livremente</span></div>
+        <div class="shortcut-item"><kbd>Meio-clique</kbd><span>Mover câmera/mapa</span></div>
+        <div class="shortcut-item"><kbd>Espaço+Arrastar</kbd><span>Mover câmera/mapa</span></div>
+        <div class="shortcut-item"><kbd>?</kbd><span>Esta tela</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ameaça (monstro/chefe do bestiário) — conteúdo montado dinamicamente por threats.js -->
+  <div id="modal-threat" class="modal-backdrop hidden">
+    <div class="modal modal-wide threat-modal"></div>
+  </div>
+
+  <!-- Input oculto para upload -->
+  <input type="file" id="token-upload-input" accept="image/png,image/webp,image/gif,image/jpeg" class="hidden" />
+  <input type="file" id="map-upload-input" accept="image/png,image/webp,image/jpeg" class="hidden" />
+
+  <script type="module" src="js/main.js"></script>
+  <!-- sheet.js é importado dentro de main.js (ES module) -->
+
+</body>
+</html>
